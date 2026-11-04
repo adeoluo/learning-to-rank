@@ -1,0 +1,78 @@
+{
+ "trees": 50,
+ "scaling": [
+  {
+   "library": "ours",
+   "threads": 1,
+   "seconds": 95.08813445799751
+  },
+  {
+   "library": "lightgbm",
+   "threads": 1,
+   "seconds": 48.61331212497316
+  },
+  {
+   "library": "ours",
+   "threads": 2,
+   "seconds": 46.795501541986596
+  },
+  {
+   "library": "lightgbm",
+   "threads": 2,
+   "seconds": 24.41846899999655
+  },
+  {
+   "library": "ours",
+   "threads": 4,
+   "seconds": 27.521438791998662
+  },
+  {
+   "library": "lightgbm",
+   "threads": 4,
+   "seconds": 20.798864292009966
+  },
+  {
+   "library": "ours",
+   "threads": 8,
+   "seconds": 26.54631916701328
+  },
+  {
+   "library": "lightgbm",
+   "threads": 8,
+   "seconds": 23.470389207999688
+  }
+ ],
+ "reference": {
+  "small_docs": 34029,
+  "train_5_trees_rust_seconds": 0.37614433298585936,
+  "train_5_trees_python_seconds": 9.529456083022524,
+  "gradients_small_python_seconds": 0.7483626659959555,
+  "gradients_small_rust_seconds": 0.0029422919906210154,
+  "gradients_full_rust_seconds_median": 0.07828499999595806,
+  "phase_seconds_per_tree": {
+   "gradients": 0.09583559587999999,
+   "histograms": 0.34867665250000024,
+   "splits": 0.012361769359999995,
+   "partition": 0.020225339320000018,
+   "update": 0.0036794850399999995,
+   "validation": 1.3500000000000003e-07
+  }
+ },
+ "machine": {
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "processor": "arm",
+  "cpu_count": 8,
+  "python": "3.12.14",
+  "load_average_1_5_15": [
+   10.41,
+   8.24,
+   9.58
+  ],
+  "cpu": "Apple M1",
+  "memory_gb": 8.0,
+  "numpy": "2.5.4",
+  "lightgbm": "4.7.0",
+  "xgboost": "3.4.1",
+  "torch": "2.15.0"
+ }
+}

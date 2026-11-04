@@ -1,4 +1,4 @@
-.PHONY: help setup lint format type test coverage rust-check rust-develop parity validation data diagram docker-build docker-up clean all
+.PHONY: help setup lint format type test coverage rust-check rust-develop parity validation data evaluation report demos diagram docker-build docker-up clean all
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -38,6 +38,22 @@ parity: ## Rust vs numpy reference parity tests
 validation: ## Tests against LightGBM, XGBoost, scikit-learn and ranx
 	uv sync --all-extras --dev --group validation
 	uv run --no-sync pytest -m validation -v
+
+evaluation: ## Every full-scale benchmark (hours on a laptop; needs make data), then the tables
+	uv sync --all-extras --dev --group validation
+	cd benchmarks && uv run --no-sync python gbdt_mslr.py all
+	cd benchmarks && uv run --no-sync python neural_mslr.py all
+	cd benchmarks && uv run --no-sync python ultr_mslr.py
+	cd benchmarks && uv run --no-sync python segments_mslr.py
+	cd benchmarks && uv run --no-sync python throughput.py
+	cd benchmarks && uv run --no-sync python istella.py prepare && uv run --no-sync python istella.py all
+	$(MAKE) report
+
+report: ## Print the README result tables from benchmarks/results
+	uv run --no-sync python benchmarks/report.py
+
+demos: ## Re-record the demo GIFs with vhs (needs make data)
+	for t in train compare clicks serve; do vhs docs/demo/$$t.tape; done
 
 data: ## Download and prepare MSLR-WEB10K (and Istella-S) under ../.bench-data/learning-to-rank
 	scripts/download_data.sh

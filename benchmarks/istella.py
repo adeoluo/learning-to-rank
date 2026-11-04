@@ -60,7 +60,7 @@ def run(lib: str) -> dict[str, Any]:
                 self.bins = bins
 
             def __getitem__(self, idx: Any) -> np.ndarray:
-                return np.asarray(self.bins[idx], dtype=np.float32)
+                return np.asarray(self.bins[idx], dtype=np.float64)
 
             def __len__(self) -> int:
                 return int(self.bins.shape[0])
