@@ -1,0 +1,52 @@
+# Learning To Rank
+
+> LambdaMART with a Rust histogram core, neural rankers, click models and unbiased learning to rank, measured against LightGBM and XGBoost on MSLR-WEB10K and Istella-S.
+
+Languages: Python, Rust. License: MIT. Source: https://github.com/adeoluo/learning-to-rank
+
+## Docs
+
+- [README](https://github.com/adeoluo/learning-to-rank/blob/main/README.md): motivation, architecture, results, quickstart, usage, design decisions, testing, responsible ai, limitations, roadmap
+- [AGENTS.md](https://github.com/adeoluo/learning-to-rank/blob/main/AGENTS.md): layout, commands and conventions for changing the code
+- [Architecture diagram](https://github.com/adeoluo/learning-to-rank/blob/main/docs/architecture/architecture.mmd): Mermaid source of the component diagram
+- [Architecture](https://github.com/adeoluo/learning-to-rank/blob/main/docs/ARCHITECTURE.md)
+- [Data Card - Learning To Rank](https://github.com/adeoluo/learning-to-rank/blob/main/docs/DATA_CARD.md)
+- [Definition of Done](https://github.com/adeoluo/learning-to-rank/blob/main/docs/DEFINITION_OF_DONE.md)
+- [Evaluation Report - Learning To Rank](https://github.com/adeoluo/learning-to-rank/blob/main/docs/EVALUATION_REPORT.md)
+- [Model / System Card - Learning To Rank](https://github.com/adeoluo/learning-to-rank/blob/main/docs/MODEL_CARD.md)
+- [Threat Model - Learning To Rank](https://github.com/adeoluo/learning-to-rank/blob/main/docs/THREAT_MODEL.md)
+- [ADR-0001: Record architecture decisions](https://github.com/adeoluo/learning-to-rank/blob/main/docs/adr/0001-record-architecture-decisions.md)
+- [ADR-0002: A Rust histogram core with a numpy reference that produces the same trees](https://github.com/adeoluo/learning-to-rank/blob/main/docs/adr/0002-rust-histogram-core-with-numpy-reference.md)
+- [ADR-0003: Follow LightGBM's LambdaRank definition and state every metric convention](https://github.com/adeoluo/learning-to-rank/blob/main/docs/adr/0003-lightgbm-lambdarank-definition-and-metric-conventions.md)
+- [ADR-0004: Rebuild the five MSLR-WEB10K folds from the Fold 1 parquet mirror](https://github.com/adeoluo/learning-to-rank/blob/main/docs/adr/0004-mslr-folds-from-the-parquet-mirror.md)
+- [ADR-0005: Train every library on the same 255-bin Istella-S matrices](https://github.com/adeoluo/learning-to-rank/blob/main/docs/adr/0005-istella-as-shared-binned-matrices.md)
+- [ADR-0006: Semi-synthetic clicks with swap interventions, and IPW targets linear in clicks](https://github.com/adeoluo/learning-to-rank/blob/main/docs/adr/0006-click-simulation-and-ipw-targets.md)
+- [ADR-NNNN: <short title>](https://github.com/adeoluo/learning-to-rank/blob/main/docs/adr/template.md)
+- [Changelog](https://github.com/adeoluo/learning-to-rank/blob/main/CHANGELOG.md): release history
+
+## Source
+
+- [rust/src/binning.rs](https://github.com/adeoluo/learning-to-rank/blob/main/rust/src/binning.rs): Feature binning: per-feature bin upper edges fitted on a row sample, and the mapping from raw values to `u8` bin indices that the histogram tree learner works on.
+- [rust/src/boost.rs](https://github.com/adeoluo/learning-to-rank/blob/main/rust/src/boost.rs): Gradient boosting driver: LambdaMART (LambdaRank gradients) or squared-error regression, histogram trees, feature subsampling, validation NDCG and early stopping.
+- [rust/src/lambda.rs](https://github.com/adeoluo/learning-to-rank/blob/main/rust/src/lambda.rs): LambdaRank gradients and hessians (Burges 2010), with the normalization choices LightGBM makes: pairs are formed between the top `truncation_level` positions of the current ranking and every position...
+- [rust/src/lib.rs](https://github.com/adeoluo/learning-to-rank/blob/main/rust/src/lib.rs): Rust core of `learning_to_rank`: LETOR parsing, feature binning, LambdaRank gradients, histogram tree learning, boosting and NDCG.
+- [rust/src/metrics.rs](https://github.com/adeoluo/learning-to-rank/blob/main/rust/src/metrics.rs): Ranking metrics used inside training (validation NDCG for early stopping).
+- [rust/src/python.rs](https://github.com/adeoluo/learning-to-rank/blob/main/rust/src/python.rs): PyO3 bindings, built by maturin into the `learning_to_rank_rs` extension module.
+- [rust/src/svmlight.rs](https://github.com/adeoluo/learning-to-rank/blob/main/rust/src/svmlight.rs): Parallel parser for the LETOR / SVMlight ranking format.
+- [rust/src/tree.rs](https://github.com/adeoluo/learning-to-rank/blob/main/rust/src/tree.rs): Histogram-based regression trees grown leaf-wise (best-first), as in LightGBM.
+- [src/learning_to_rank/__init__.py](https://github.com/adeoluo/learning-to-rank/blob/main/src/learning_to_rank/__init__.py): Learning to rank: LambdaMART with a Rust histogram core, neural rankers, click models, unbiased learning to rank, ranking metrics, segment analysis and significance tests.
+- [src/learning_to_rank/backend.py](https://github.com/adeoluo/learning-to-rank/blob/main/src/learning_to_rank/backend.py): The Rust backend, compiled into the package on install and used by default.
+- [src/learning_to_rank/binning.py](https://github.com/adeoluo/learning-to-rank/blob/main/src/learning_to_rank/binning.py): Feature binning for the histogram tree learner.
+- [src/learning_to_rank/cli.py](https://github.com/adeoluo/learning-to-rank/blob/main/src/learning_to_rank/cli.py): Command line interface: ``python -m learning_to_rank <command>``.
+- [src/learning_to_rank/clicks.py](https://github.com/adeoluo/learning-to-rank/blob/main/src/learning_to_rank/clicks.py): Click simulation and click models.
+- [src/learning_to_rank/data.py](https://github.com/adeoluo/learning-to-rank/blob/main/src/learning_to_rank/data.py): Query-grouped ranking data and LETOR (SVMlight) input and output.
+- [src/learning_to_rank/datasets.py](https://github.com/adeoluo/learning-to-rank/blob/main/src/learning_to_rank/datasets.py): Public learning-to-rank datasets: MSLR-WEB10K (five folds) and Istella-S.
+- [src/learning_to_rank/gbdt.py](https://github.com/adeoluo/learning-to-rank/blob/main/src/learning_to_rank/gbdt.py): LambdaMART: gradient boosted regression trees trained with LambdaRank gradients.
+- [src/learning_to_rank/gbdt_reference.py](https://github.com/adeoluo/learning-to-rank/blob/main/src/learning_to_rank/gbdt_reference.py): Numpy reference implementation of the LambdaMART trainer.
+- [src/learning_to_rank/metrics.py](https://github.com/adeoluo/learning-to-rank/blob/main/src/learning_to_rank/metrics.py): Vectorized ranking metrics: NDCG@k, MAP, MRR, ERR@k and precision@k, per query and averaged.
+- [src/learning_to_rank/neural.py](https://github.com/adeoluo/learning-to-rank/blob/main/src/learning_to_rank/neural.py): Neural rankers: an MLP scoring function trained with pointwise, pairwise or listwise losses.
+- [src/learning_to_rank/observability.py](https://github.com/adeoluo/learning-to-rank/blob/main/src/learning_to_rank/observability.py): Thread-safe service metrics in the Prometheus text exposition format.
+- [src/learning_to_rank/segments.py](https://github.com/adeoluo/learning-to-rank/blob/main/src/learning_to_rank/segments.py): Segment analysis: how ranking quality differs across groups of queries.
+- [src/learning_to_rank/service.py](https://github.com/adeoluo/learning-to-rank/blob/main/src/learning_to_rank/service.py): HTTP ranking service (standard library).
+- [src/learning_to_rank/significance.py](https://github.com/adeoluo/learning-to-rank/blob/main/src/learning_to_rank/significance.py): Statistical significance for paired per-query comparisons of two rankers.
+- [src/learning_to_rank/unbiased.py](https://github.com/adeoluo/learning-to-rank/blob/main/src/learning_to_rank/unbiased.py): Unbiased learning to rank from click logs with inverse propensity weighting (IPW).
