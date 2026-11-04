@@ -69,3 +69,45 @@ def test_query_length_and_clicks() -> None:
     d = RankingData.from_arrays(X, [0, 1, 0, 1], [1, 1, 2, 2])
     assert mslr_query_length(d).tolist() == [4, 0]
     assert mslr_query_clicks(d).tolist() == [4.0, 5.0]
+
+
+def _write_istella(path: Path, rng: np.random.Generator) -> None:
+    import io
+    import tarfile
+
+    from learning_to_rank.data import synthetic, to_svmlight
+    from learning_to_rank.datasets import ISTELLA_FEATURES, ISTELLA_SPLITS
+
+    with tarfile.open(path, "w:gz") as tar:
+        for i, member in enumerate(ISTELLA_SPLITS.values()):
+            d = synthetic(20, (3, 9), ISTELLA_FEATURES, seed=i)
+            raw = to_svmlight(d, precision=7).encode()
+            info = tarfile.TarInfo(member)
+            info.size = len(raw)
+            tar.addfile(info, io.BytesIO(raw))
+
+
+def test_prepare_and_load_istella(tmp_path: Path) -> None:
+    from learning_to_rank import LambdaMART, evaluate
+    from learning_to_rank.datasets import ISTELLA_FEATURES, load_istella, prepare_istella
+
+    archive = tmp_path / "istella.tar.gz"
+    _write_istella(archive, np.random.default_rng(0))
+    stats = prepare_istella(archive, tmp_path / "out", sample_every=2, lines_per_chunk=50)
+    assert stats["train"]["queries"] == 20 and stats["features"] == ISTELLA_FEATURES
+    train, test = load_istella(tmp_path / "out", "train"), load_istella(tmp_path / "out", "test")
+    assert train.bins.dtype == np.uint8 and train.bins.shape == (
+        stats["train"]["rows"],
+        ISTELLA_FEATURES,
+    )
+    m = LambdaMART(n_estimators=5, min_data_in_leaf=2).fit_binned(
+        train, load_istella(tmp_path / "out", "valid")
+    )
+    scores = m.predict(test.bins.astype(np.float32))
+    data = RankingData(
+        test.bins.astype(np.float32),
+        test.y,
+        np.repeat(np.arange(len(test.offsets) - 1), np.diff(test.offsets)),
+    )
+    assert 0 <= evaluate(data, scores)["ndcg@10"] <= 1
+    assert len(m.result.valid_ndcg) == 5

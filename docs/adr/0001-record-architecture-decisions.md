@@ -1,7 +1,7 @@
 # ADR-0001: Record architecture decisions
 
 - **Status:** Accepted
-- **Date:** 2026-01-01
+- **Date:** 2026-11-04
 
 ## Context
 We need a lightweight, durable record of non-obvious engineering decisions so reviewers

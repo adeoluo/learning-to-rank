@@ -231,17 +231,46 @@ class Ensemble:
                         raise ValueError("leaf index out of range")
 
 
+@dataclass
+class BinnedData:
+    """Pre-binned ranking data: a row-major ``uint8`` bin matrix with labels and query offsets.
+
+    Used for datasets too large to hold as float32 (Istella-S); the bin index itself is the
+    feature value, so a split "bin <= t" predicts on the same matrix.
+    """
+
+    bins: NDArray[np.uint8]
+    y: NDArray[np.float32]
+    offsets: NDArray[np.int64]
+
+    def __post_init__(self) -> None:
+        if self.bins.ndim != 2 or self.bins.dtype != np.uint8:
+            raise ValueError("bins must be a 2-D uint8 array")
+        if self.y.shape != (self.bins.shape[0],):
+            raise ValueError("one label per row is required")
+        if self.offsets[0] != 0 or self.offsets[-1] != self.bins.shape[0]:
+            raise ValueError("offsets must start at 0 and end at the row count")
+
+    @property
+    def n_docs(self) -> int:
+        return int(self.bins.shape[0])
+
+    @property
+    def n_features(self) -> int:
+        return int(self.bins.shape[1])
+
+
 class _ReferenceBooster:
     """Same interface as the Rust ``Booster``, implemented with the numpy reference."""
 
     def __init__(
         self,
         bins: NDArray[np.uint8],
-        train: RankingData,
+        train: RankingData | BinnedData,
         edges: list[NDArray[np.float32]],
         p: GBDTParams,
         valid_bins: NDArray[np.uint8] | None,
-        valid: RankingData | None,
+        valid: RankingData | BinnedData | None,
     ) -> None:
         self.bins, self.train, self.edges, self.p = bins, train, edges, p
         self.n_bins = [int(e.shape[0]) + 1 for e in edges]
@@ -420,6 +449,49 @@ class LambdaMART:
         bins = mapper.transform(train.X, backend=self.backend)
         vbins = mapper.transform(valid.X, backend=self.backend) if valid is not None else None
         t1 = time.perf_counter()
+        return self._boost(
+            BinnedData(bins, train.y, train.offsets),
+            BinnedData(vbins, valid.y, valid.offsets)
+            if valid is not None and vbins is not None
+            else None,
+            mapper.edges,
+            callback=callback,
+            chunk=chunk,
+            t0=t0,
+            t1=t1,
+        )
+
+    def fit_binned(
+        self,
+        train: BinnedData,
+        valid: BinnedData | None = None,
+        *,
+        callback: Callable[[int, float | None], None] | None = None,
+        chunk: int = 10,
+    ) -> LambdaMART:
+        """Train on pre-binned data; every feature's bins are its values ``0 .. max``."""
+
+        if valid is not None and valid.n_features != train.n_features:
+            raise ValueError("train and validation data have different feature counts")
+        t0 = time.perf_counter()
+        top = train.bins.max(axis=0) if train.n_docs else np.zeros(train.n_features, np.uint8)
+        edges = [np.arange(int(m), dtype=np.float32) for m in top]
+        return self._boost(train, valid, edges, callback=callback, chunk=chunk, t0=t0, t1=t0)
+
+    def _boost(
+        self,
+        train: BinnedData,
+        valid: BinnedData | None,
+        edges: list[NDArray[np.float32]],
+        *,
+        callback: Callable[[int, float | None], None] | None,
+        chunk: int,
+        t0: float,
+        t1: float,
+    ) -> LambdaMART:
+        p = self.params
+        bins = train.bins
+        vbins = valid.bins if valid is not None else None
         booster: Any
         if self.backend == "rust":
             kwargs: dict[str, Any] = {}
@@ -434,7 +506,7 @@ class LambdaMART:
                 train.n_features,
                 train.y,
                 train.offsets,
-                mapper.to_lists(),
+                [e.tolist() for e in edges],
                 objective=p.objective,
                 learning_rate=p.learning_rate,
                 num_leaves=p.num_leaves,
@@ -452,7 +524,7 @@ class LambdaMART:
                 **kwargs,
             )
         else:
-            booster = _ReferenceBooster(bins, train, mapper.edges, p, vbins, valid)
+            booster = _ReferenceBooster(bins, train, edges, p, vbins, valid)
         history: list[float] = []
         best_it, best = 0, -np.inf
         done = 0
