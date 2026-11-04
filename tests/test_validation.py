@@ -34,7 +34,7 @@ def test_ranx_map_mrr_ndcg(medium: tuple[RankingData, ...]) -> None:
     np.testing.assert_allclose(ours["ndcg@10"][keep], ref["ndcg_burges@10"], rtol=1e-9)
 
 
-def test_lightgbm_ndcg_metric_agrees(medium: tuple[RankingData, ...]) -> None:
+def test_lightgbm_ndcg_metric_agrees(medium: tuple[RankingData, ...], openmp_safe: None) -> None:
     lgb = pytest.importorskip("lightgbm")
     train, valid, _ = medium
     evals: dict[str, dict[str, list[float]]] = {}
@@ -53,7 +53,7 @@ def test_lightgbm_ndcg_metric_agrees(medium: tuple[RankingData, ...]) -> None:
         assert m[f"ndcg@{k}"] == pytest.approx(evals["v"][f"ndcg@{k}"][-1], abs=1e-6)
 
 
-def test_quality_matches_lightgbm(medium: tuple[RankingData, ...]) -> None:
+def test_quality_matches_lightgbm(medium: tuple[RankingData, ...], openmp_safe: None) -> None:
     lgb = pytest.importorskip("lightgbm")
     train, _, test = medium
     ours = LambdaMART(n_estimators=60).fit(train)
@@ -64,7 +64,7 @@ def test_quality_matches_lightgbm(medium: tuple[RankingData, ...]) -> None:
     assert abs(a - b) < 0.02, (a, b)
 
 
-def test_xgboost_runs_on_same_data(medium: tuple[RankingData, ...]) -> None:
+def test_xgboost_runs_on_same_data(medium: tuple[RankingData, ...], openmp_safe: None) -> None:
     xgb = pytest.importorskip("xgboost")
     train, _, test = medium
     d = xgb.DMatrix(train.X, train.y, qid=train.qid)
