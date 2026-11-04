@@ -1,0 +1,12 @@
+services:
+  application:
+    build: .
+    env_file: .env
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import learning_to_rank"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
