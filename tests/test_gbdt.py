@@ -150,3 +150,39 @@ def test_feature_mismatch(medium: tuple[RankingData, ...]) -> None:
 def test_unknown_backend() -> None:
     with pytest.raises(ValueError):
         LambdaMART(backend="gpu")
+
+
+@pytest.mark.parametrize("backend", BACKENDS)
+def test_fit_binned_matches_fit_on_bin_values(
+    backend: str, medium: tuple[RankingData, ...]
+) -> None:
+    from learning_to_rank.binning import BinMapper
+    from learning_to_rank.gbdt import BinnedData
+
+    train, _, _ = medium
+    bins = BinMapper.fit(train.X, max_bin=32).transform(train.X)
+    as_float = RankingData(bins.astype(np.float32), train.y, train.qid)
+    a = LambdaMART(backend=backend, n_estimators=4, num_leaves=7).fit(as_float)
+    b = LambdaMART(backend=backend, n_estimators=4, num_leaves=7).fit_binned(
+        BinnedData(bins, train.y, train.offsets)
+    )
+    assert a.ensemble is not None and b.ensemble is not None
+    np.testing.assert_array_equal(a.ensemble.split_feature, b.ensemble.split_feature)
+    np.testing.assert_allclose(a.predict(as_float), b.predict(bins.astype(np.float32)))
+
+
+def test_binned_data_validation(medium: tuple[RankingData, ...]) -> None:
+    from learning_to_rank.gbdt import BinnedData
+
+    train, _, _ = medium
+    bins = np.zeros((train.n_docs, 2), dtype=np.uint8)
+    with pytest.raises(ValueError):
+        BinnedData(bins.astype(np.int16), train.y, train.offsets)  # type: ignore[arg-type]
+    with pytest.raises(ValueError):
+        BinnedData(bins, train.y[:-1], train.offsets)
+    with pytest.raises(ValueError):
+        BinnedData(bins, train.y, train.offsets[:-1])
+    ok = BinnedData(bins, train.y, train.offsets)
+    other = BinnedData(np.zeros((train.n_docs, 3), dtype=np.uint8), train.y, train.offsets)
+    with pytest.raises(ValueError):
+        LambdaMART(n_estimators=1).fit_binned(ok, other)
