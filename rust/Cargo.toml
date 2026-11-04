@@ -1,0 +1,26 @@
+[package]
+name = "learning-to-rank-rs"
+version = "0.1.0"
+edition = "2021"
+description = "Rust core of learning-to-rank: LETOR parsing, feature binning, LambdaMART histogram trees and ranking metrics"
+license = "MIT"
+authors = ["Adeolu Ogunnoiki"]
+repository = "https://github.com/adeoluo/learning-to-rank"
+publish = false
+
+[lib]
+name = "learning_to_rank_rs"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+# Enabled by maturin (see pyproject.toml). Plain `cargo test` builds the core without Python.
+python = ["dep:pyo3"]
+
+[dependencies]
+pyo3 = { version = "0.30", optional = true, features = ["abi3-py311"] }
+rayon = "1.10"
+
+[profile.release]
+lto = true
+codegen-units = 1

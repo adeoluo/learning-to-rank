@@ -1,0 +1,7 @@
+.venv
+.git
+rust/target
+.pytest-tmp
+.mypy_cache
+.ruff_cache
+docs/demo/*.gif
