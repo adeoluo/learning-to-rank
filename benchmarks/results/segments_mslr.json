@@ -1,0 +1,365 @@
+{
+ "n_queries": 10000,
+ "systems": [
+  "LambdaMART (this package)",
+  "LightGBM",
+  "XGBoost",
+  "MLP, ListNet",
+  "MLP, RankNet"
+ ],
+ "baseline": "LightGBM",
+ "overall_vs_baseline": {
+  "LambdaMART (this package)": {
+   "metric": "ndcg@10",
+   "n_queries": 10000,
+   "mean_a": 0.5029139645,
+   "mean_b": 0.5042062452,
+   "diff": -0.0012922807,
+   "ci_low": -0.0028457775778086753,
+   "ci_high": 0.0002612161778086752,
+   "t_p_value": 0.103006482238029,
+   "randomization_p_value": 0.10668933106689331,
+   "wins": 4515,
+   "ties": 778,
+   "losses": 4707
+  },
+  "XGBoost": {
+   "metric": "ndcg@10",
+   "n_queries": 10000,
+   "mean_a": 0.5061389753,
+   "mean_b": 0.5042062452,
+   "diff": 0.0019327300999999995,
+   "ci_low": 0.0004759183532810007,
+   "ci_high": 0.003389541846718998,
+   "t_p_value": 0.009320616443763727,
+   "randomization_p_value": 0.0096990300969903,
+   "wins": 4677,
+   "ties": 827,
+   "losses": 4496
+  },
+  "MLP, ListNet": {
+   "metric": "ndcg@10",
+   "n_queries": 10000,
+   "mean_a": 0.4907296947,
+   "mean_b": 0.5042062452,
+   "diff": -0.013476550499999998,
+   "ci_low": -0.015688121811744907,
+   "ci_high": -0.01126497918825509,
+   "t_p_value": 1.1525854775579166e-32,
+   "randomization_p_value": 9.999000099990002e-05,
+   "wins": 4170,
+   "ties": 582,
+   "losses": 5248
+  },
+  "MLP, RankNet": {
+   "metric": "ndcg@10",
+   "n_queries": 10000,
+   "mean_a": 0.4841381049,
+   "mean_b": 0.5042062452,
+   "diff": -0.020068140300000002,
+   "ci_low": -0.022439706062286544,
+   "ci_high": -0.01769657453771346,
+   "t_p_value": 5.6100053918142196e-61,
+   "randomization_p_value": 9.999000099990002e-05,
+   "wins": 4112,
+   "ties": 573,
+   "losses": 5315
+  }
+ },
+ "popularity_thresholds": {
+  "head": [
+   10852.0,
+   34535113.0
+  ],
+  "torso": [
+   24.0,
+   10812.0
+  ],
+  "tail": [
+   0.0,
+   24.0
+  ]
+ },
+ "popularity": [
+  {
+   "segment": "head",
+   "n_queries": 1000,
+   "means": {
+    "LambdaMART (this package)": 0.514647764,
+    "LightGBM": 0.513342473,
+    "XGBoost": 0.509952027,
+    "MLP, ListNet": 0.497185445,
+    "MLP, RankNet": 0.465294536
+   },
+   "diffs": {
+    "LambdaMART (this package)": 0.0013052909999999992,
+    "XGBoost": -0.003390446000000001,
+    "MLP, ListNet": -0.016157027999999997,
+    "MLP, RankNet": -0.048047937
+   },
+   "p_values": {
+    "LambdaMART (this package)": 0.48075192480751927,
+    "XGBoost": 0.07019298070192981,
+    "MLP, ListNet": 9.999000099990002e-05,
+    "MLP, RankNet": 9.999000099990002e-05
+   },
+   "adjusted_p_values": {
+    "LambdaMART (this package)": 0.5593440655934406,
+    "XGBoost": 0.14038596140385962,
+    "MLP, ListNet": 0.00029997000299970003,
+    "MLP, RankNet": 0.00029997000299970003
+   }
+  },
+  {
+   "segment": "torso",
+   "n_queries": 4000,
+   "means": {
+    "LambdaMART (this package)": 0.53856955625,
+    "LightGBM": 0.539659214,
+    "XGBoost": 0.540743095,
+    "MLP, ListNet": 0.52311525675,
+    "MLP, RankNet": 0.51279136625
+   },
+   "diffs": {
+    "LambdaMART (this package)": -0.0010896577500000006,
+    "XGBoost": 0.0010838809999999994,
+    "MLP, ListNet": -0.016543957249999998,
+    "MLP, RankNet": -0.02686784775
+   },
+   "p_values": {
+    "LambdaMART (this package)": 0.2796720327967203,
+    "XGBoost": 0.2606739326067393,
+    "MLP, ListNet": 9.999000099990002e-05,
+    "MLP, RankNet": 9.999000099990002e-05
+   },
+   "adjusted_p_values": {
+    "LambdaMART (this package)": 0.5593440655934406,
+    "XGBoost": 0.2606739326067393,
+    "MLP, ListNet": 0.00029997000299970003,
+    "MLP, RankNet": 0.00029997000299970003
+   }
+  },
+  {
+   "segment": "tail",
+   "n_queries": 5000,
+   "means": {
+    "LambdaMART (this package)": 0.47204273119999995,
+    "LightGBM": 0.47401662460000005,
+    "XGBoost": 0.4776930692,
+    "MLP, ListNet": 0.4635300950000001,
+    "MLP, RankNet": 0.46498420960000003
+   },
+   "diffs": {
+    "LambdaMART (this package)": -0.0019738934,
+    "XGBoost": 0.0036764446000000007,
+    "MLP, ListNet": -0.0104865296,
+    "MLP, RankNet": -0.009032415
+   },
+   "p_values": {
+    "LambdaMART (this package)": 0.12808719128087193,
+    "XGBoost": 0.001999800019998,
+    "MLP, ListNet": 9.999000099990002e-05,
+    "MLP, RankNet": 9.999000099990002e-05
+   },
+   "adjusted_p_values": {
+    "LambdaMART (this package)": 0.3842615738426158,
+    "XGBoost": 0.0059994000599940004,
+    "MLP, ListNet": 0.00029997000299970003,
+    "MLP, RankNet": 0.00029997000299970003
+   }
+  }
+ ],
+ "query_length": [
+  {
+   "segment": "1",
+   "n_queries": 1938,
+   "means": {
+    "LambdaMART (this package)": 0.5378981212590299,
+    "LightGBM": 0.5364341805985552,
+    "XGBoost": 0.536688338493292,
+    "MLP, ListNet": 0.5128517038183694,
+    "MLP, RankNet": 0.4989648379772961
+   },
+   "diffs": {
+    "LambdaMART (this package)": 0.001463940660474716,
+    "XGBoost": 0.00025415789473684134,
+    "MLP, ListNet": -0.023582476780185754,
+    "MLP, RankNet": -0.03746934262125903
+   },
+   "p_values": {
+    "LambdaMART (this package)": 0.3708629137086291,
+    "XGBoost": 0.8661133886611339,
+    "MLP, ListNet": 9.999000099990002e-05,
+    "MLP, RankNet": 9.999000099990002e-05
+   },
+   "adjusted_p_values": {
+    "LambdaMART (this package)": 1.0,
+    "XGBoost": 1.0,
+    "MLP, ListNet": 0.0005999400059994001,
+    "MLP, RankNet": 0.0005999400059994001
+   }
+  },
+  {
+   "segment": "2",
+   "n_queries": 3723,
+   "means": {
+    "LambdaMART (this package)": 0.500688365028203,
+    "LightGBM": 0.5024582398603277,
+    "XGBoost": 0.5045331399409079,
+    "MLP, ListNet": 0.4870359392962665,
+    "MLP, RankNet": 0.4803571257050766
+   },
+   "diffs": {
+    "LambdaMART (this package)": -0.0017698748321246312,
+    "XGBoost": 0.0020749000805801773,
+    "MLP, ListNet": -0.01542230056406124,
+    "MLP, RankNet": -0.02210111415525114
+   },
+   "p_values": {
+    "LambdaMART (this package)": 0.1456854314568543,
+    "XGBoost": 0.0827917208279172,
+    "MLP, ListNet": 9.999000099990002e-05,
+    "MLP, RankNet": 9.999000099990002e-05
+   },
+   "adjusted_p_values": {
+    "LambdaMART (this package)": 0.8741125887411259,
+    "XGBoost": 0.413958604139586,
+    "MLP, ListNet": 0.0005999400059994001,
+    "MLP, RankNet": 0.0005999400059994001
+   }
+  },
+  {
+   "segment": "3",
+   "n_queries": 2459,
+   "means": {
+    "LambdaMART (this package)": 0.4948009223261488,
+    "LightGBM": 0.49673599999999996,
+    "XGBoost": 0.5000037706384709,
+    "MLP, ListNet": 0.4877489255795038,
+    "MLP, RankNet": 0.4835133163887759
+   },
+   "diffs": {
+    "LambdaMART (this package)": -0.0019350776738511584,
+    "XGBoost": 0.003267770638470922,
+    "MLP, ListNet": -0.008987074420496136,
+    "MLP, RankNet": -0.013222683611224074
+   },
+   "p_values": {
+    "LambdaMART (this package)": 0.23567643235676433,
+    "XGBoost": 0.029997000299970003,
+    "MLP, ListNet": 0.00029997000299970003,
+    "MLP, RankNet": 9.999000099990002e-05
+   },
+   "adjusted_p_values": {
+    "LambdaMART (this package)": 1.0,
+    "XGBoost": 0.17998200179982002,
+    "MLP, ListNet": 0.0011998800119988001,
+    "MLP, RankNet": 0.0005999400059994001
+   }
+  },
+  {
+   "segment": "4",
+   "n_queries": 1087,
+   "means": {
+    "LambdaMART (this package)": 0.4832852548298068,
+    "LightGBM": 0.48619111407543686,
+    "XGBoost": 0.48702720423183066,
+    "MLP, ListNet": 0.47784475160993556,
+    "MLP, RankNet": 0.4769337838086476
+   },
+   "diffs": {
+    "LambdaMART (this package)": -0.0029058592456301744,
+    "XGBoost": 0.0008360901563937443,
+    "MLP, ListNet": -0.00834636246550138,
+    "MLP, RankNet": -0.009257330266789328
+   },
+   "p_values": {
+    "LambdaMART (this package)": 0.29817018298170184,
+    "XGBoost": 0.726027397260274,
+    "MLP, ListNet": 0.015198480151984802,
+    "MLP, RankNet": 0.006899310068993101
+   },
+   "adjusted_p_values": {
+    "LambdaMART (this package)": 1.0,
+    "XGBoost": 1.0,
+    "MLP, ListNet": 0.030396960303969604,
+    "MLP, RankNet": 0.013798620137986202
+   }
+  },
+  {
+   "segment": "5+",
+   "n_queries": 610,
+   "means": {
+    "LambdaMART (this package)": 0.5075139114754098,
+    "LightGBM": 0.509181086885246,
+    "XGBoost": 0.5124972049180327,
+    "MLP, ListNet": 0.5166772245901639,
+    "MLP, RankNet": 0.5193096606557377
+   },
+   "diffs": {
+    "LambdaMART (this package)": -0.0016671754098360682,
+    "XGBoost": 0.003316118032786884,
+    "MLP, ListNet": 0.007496137704918034,
+    "MLP, RankNet": 0.0101285737704918
+   },
+   "p_values": {
+    "LambdaMART (this package)": 0.689031096890311,
+    "XGBoost": 0.38316168383161686,
+    "MLP, ListNet": 0.1496850314968503,
+    "MLP, RankNet": 0.048795120487951205
+   },
+   "adjusted_p_values": {
+    "LambdaMART (this package)": 1.0,
+    "XGBoost": 1.0,
+    "MLP, ListNet": 0.1496850314968503,
+    "MLP, RankNet": 0.048795120487951205
+   }
+  },
+  {
+   "segment": "unknown",
+   "n_queries": 183,
+   "means": {
+    "LambdaMART (this package)": 0.3879796557377049,
+    "LightGBM": 0.38927297814207645,
+    "XGBoost": 0.39005319672131145,
+    "MLP, ListNet": 0.361697174863388,
+    "MLP, RankNet": 0.33799154644808743
+   },
+   "diffs": {
+    "LambdaMART (this package)": -0.0012933224043715848,
+    "XGBoost": 0.000780218579234972,
+    "MLP, ListNet": -0.027575803278688523,
+    "MLP, RankNet": -0.05128143169398908
+   },
+   "p_values": {
+    "LambdaMART (this package)": 0.8439156084391561,
+    "XGBoost": 0.8898110188981102,
+    "MLP, ListNet": 0.0013998600139986002,
+    "MLP, RankNet": 0.00029997000299970003
+   },
+   "adjusted_p_values": {
+    "LambdaMART (this package)": 1.0,
+    "XGBoost": 1.0,
+    "MLP, ListNet": 0.004199580041995801,
+    "MLP, RankNet": 0.0008999100089991002
+   }
+  }
+ ],
+ "machine": {
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "processor": "arm",
+  "cpu_count": 8,
+  "python": "3.12.14",
+  "load_average_1_5_15": [
+   6.19,
+   10.13,
+   11.11
+  ],
+  "cpu": "Apple M1",
+  "memory_gb": 8.0,
+  "numpy": "2.5.4",
+  "lightgbm": "4.7.0",
+  "xgboost": "3.4.1",
+  "torch": "2.15.0"
+ }
+}
