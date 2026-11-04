@@ -15,53 +15,117 @@ concurrency:
 
 jobs:
   quality:
-    name: format · lint · type · test
+    name: format, lint, type, test (py${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.11", "3.12"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
 
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
 
-      - name: Install dependencies
-        run: uv sync --all-extras --dev
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies (builds the Rust core)
+        run: uv sync --all-extras --dev --python ${{ matrix.python-version }}
 
       - name: Format check (ruff)
-        run: uv run ruff format --check .
+        run: uv run --no-sync ruff format --check .
 
       - name: Lint (ruff)
-        run: uv run ruff check .
+        run: uv run --no-sync ruff check .
 
       - name: Type check (mypy)
-        run: uv run mypy src
+        run: uv run --no-sync mypy src
 
       - name: Test (+ coverage gate)
-        run: uv run pytest --cov=src --cov-report=xml --cov-report=term-missing --cov-fail-under=80
+        env:
+          LTR_REQUIRE_RUST: "1"
+        run: uv run --no-sync pytest --cov=src --cov-report=xml --cov-report=term-missing --cov-fail-under=80
 
       - name: Upload coverage
         if: matrix.python-version == '3.12'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage
           path: coverage.xml
+
+  rust:
+    name: rust core and parity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Format, lint and unit tests
+        working-directory: rust
+        run: |
+          cargo fmt --check
+          cargo clippy --all-targets -- -D warnings
+          cargo clippy --all-targets --features python -- -D warnings
+          cargo test
+
+      - name: Build the package with its Rust core
+        run: uv sync --dev --python 3.12
+
+      - name: Parity tests (Rust vs numpy reference)
+        env:
+          LTR_REQUIRE_RUST: "1"
+        run: uv run --no-sync pytest tests/test_rust_parity.py -v
+
+  validation:
+    name: reference libraries (LightGBM, XGBoost, scikit-learn, ranx)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: uv sync --all-extras --dev --group validation --python 3.12
+
+      - name: Validation tests
+        env:
+          LTR_REQUIRE_RUST: "1"
+        run: uv run --no-sync pytest -m validation -v
 
   build:
     name: build (package + image)
     runs-on: ubuntu-latest
     needs: quality
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v7
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
       - name: Build package
         run: uv build
       - name: Build Docker image
