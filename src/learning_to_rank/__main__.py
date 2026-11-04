@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-from learning_to_rank import __version__
+import sys
 
-
-def main() -> None:
-    print(f"learning-to-rank {__version__}")
-
+from learning_to_rank.cli import main
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
