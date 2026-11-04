@@ -27,10 +27,14 @@
 ## Performance
 
 Headline (details in [`EVALUATION_REPORT.md`](EVALUATION_REPORT.md)): on MSLR-WEB10K, five folds,
-our LambdaMART reaches the same test NDCG@10 as LightGBM's `lambdarank` with the same settings,
-XGBoost's `rank:ndcg` is slightly higher, and the MLP rankers are lower. Quality differs by
-segment: head queries score lower than tail queries, and the per-segment differences between
-the tree libraries are small and mostly not significant after Holm adjustment.
+our LambdaMART reaches test NDCG@10 0.5029 ± 0.0061 against 0.5042 ± 0.0056 for LightGBM's
+`lambdarank` with the same settings, a difference that is not significant over the 10,000
+queries (p = 0.10); XGBoost's `rank:ndcg` is slightly and significantly higher (0.5061,
+p = 0.01). On Istella-S our LambdaMART and LightGBM are level (0.7603 and 0.7595, p = 0.20) and
+XGBoost is lower (0.7554). The best MLP ranker (ListNet) reaches 0.4907 on MSLR. Tail queries
+score lowest for every model (about 0.47 against 0.54 for torso queries); the per-segment
+differences between our trainer and LightGBM are within 0.003 and not significant after Holm
+adjustment. LightGBM trains 1.7 to 2.4 times faster.
 
 ## Risks and limitations
 
@@ -48,5 +52,6 @@ the tree libraries are small and mostly not significant after Holm adjustment.
 
 ## Environmental and cost footprint
 
-All experiments ran on one Apple M1 laptop (8 cores, 8 GB): about 40 minutes for the five-fold
-tree comparison, under an hour for the neural rankers, and minutes for the click experiments.
+All experiments ran on one Apple M1 laptop (8 cores, 8 GB) shared with other jobs: about 40
+minutes for the five-fold tree comparison, about two hours for the 20 MLP runs on the shared
+GPU, 19 minutes for the unbiased learning-to-rank study and about 20 minutes for Istella-S.

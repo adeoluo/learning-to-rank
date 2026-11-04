@@ -38,3 +38,4 @@ rust/target/
 *_scratch.py
 .venv311/
 *.log
+.demo/
