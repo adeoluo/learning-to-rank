@@ -1,38 +1,49 @@
----
-title: System Architecture - Learning To Rank
-config:
-  theme: base
-  themeVariables:
-    fontFamily: "Inter, system-ui, sans-serif"
-    primaryColor: "#F8FAFC"
-    primaryBorderColor: "#1E293B"
-    primaryTextColor: "#1E293B"
-    lineColor: "#64748B"
-    clusterBkg: "#E2E8F0"
-    clusterBorder: "#94A3B8"
----
 flowchart LR
+    classDef edge     fill:#F59E0B,stroke:#1E293B,color:#1E293B,stroke-width:1px;
     classDef core     fill:#6366F1,stroke:#1E293B,color:#ffffff,stroke-width:1px;
     classDef data     fill:#10B981,stroke:#1E293B,color:#ffffff,stroke-width:1px;
-    classDef external fill:#F59E0B,stroke:#1E293B,color:#1E293B,stroke-width:1px;
-    classDef danger   fill:#EF4444,stroke:#1E293B,color:#ffffff,stroke-width:1px;
+    classDef control  fill:#0EA5E9,stroke:#1E293B,color:#ffffff,stroke-width:1px;
+    classDef obs      fill:#CBD5E1,stroke:#1E293B,color:#1E293B,stroke-width:1px;
 
-    User([User]):::external
-
-    subgraph Application["Application Service"]
-        API[API Layer]:::core
-        Core[Core Engine]:::core
-        Evaluation[Evaluation Harness]:::core
+    subgraph Interfaces["Interfaces"]
+        direction TB
+        Users([Users and clients]):::edge
+        CLI["CLI<br/>train, compare, clicks"]:::edge
+        API["HTTP service<br/>/rank /score"]:::core
+        Validate["Validation<br/>shapes, limits"]:::control
+        Users --> CLI ~~~ API --> Validate
     end
 
-    Cache[(Semantic Cache)]:::data
-    Store[(Datastore / Index)]:::data
-    LLM{{LLM Provider}}:::external
+    subgraph State["Data and state"]
+        direction TB
+        Sources[("MSLR-WEB10K<br/>Istella-S")]:::data
+        Loader["Loaders<br/>5 folds, LETOR parser"]:::core
+        Bins[("Bin matrices<br/>uint8, 255 bins")]:::data
+        Logs[("Click logs<br/>simulated sessions")]:::data
+        Sources --> Loader --> Bins ~~~ Logs
+    end
 
-    User -->|request| API
-    API --> Core
-    Core -->|lookup| Cache
-    Core -->|retrieve| Store
-    Core -->|completion| LLM
-    Core -.->|traces/metrics| Evaluation
-    Core -->|response| User
+    subgraph Core["Learning (Rust core, PyTorch)"]
+        direction TB
+        Params["Parameters<br/>LightGBM defaults"]:::control
+        Lambda["LambdaRank gradients<br/>Rust, per query"]:::core
+        Trees["Histogram trees<br/>Rust, leaf-wise"]:::core
+        ClickM["Click models<br/>PBM by EM, cascade"]:::core
+        IPW["IPW targets<br/>propensity weights"]:::control
+        Neural["Neural rankers<br/>pairwise, listwise"]:::core
+        Params --> Lambda --> Trees
+        ClickM --> IPW ~~~ Neural
+    end
+
+    subgraph Obs["Evaluation and observability"]
+        direction TB
+        Metrics["Metrics<br/>NDCG, MAP, MRR, ERR"]:::obs
+        Sig["Significance<br/>t-test, randomization"]:::obs
+        Seg["Segments<br/>head, torso, tail"]:::obs
+        Prom["Service metrics<br/>Prometheus text"]:::obs
+        Metrics --> Sig --> Seg ~~~ Prom
+    end
+
+    Interfaces -->|data, parameters| Core
+    State -.->|bins, labels, clicks| Core
+    Core -->|scores| Obs
