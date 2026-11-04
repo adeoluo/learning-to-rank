@@ -248,8 +248,9 @@ model = LambdaMART(n_estimators=100).fit(train)
 print(evaluate(test, model.predict(test))["ndcg@10"])
 ```
 
-Prebuilt wheels (macOS arm64 and Linux x86_64) are attached to the
-[releases](https://github.com/adeoluo/learning-to-rank/releases).
+A prebuilt wheel for macOS arm64 (abi3, Python 3.11 and later) and the source distribution are
+attached to the [releases](https://github.com/adeoluo/learning-to-rank/releases); building from
+source needs a Rust toolchain.
 
 ## Usage
 
