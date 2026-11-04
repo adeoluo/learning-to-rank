@@ -64,6 +64,46 @@ pub fn query_gradients(
     g: &mut [f64],
     h: &mut [f64],
 ) {
+    let mut scratch = QueryScratch::default();
+    query_gradients_with(
+        labels,
+        gains,
+        scores,
+        inv_max_dcg,
+        discounts,
+        p,
+        g,
+        h,
+        &mut scratch,
+    );
+}
+
+/// Per-thread buffers for `query_gradients_with`: the query's labels, scores, gains and
+/// accumulated gradients laid out in ranked order.
+#[derive(Debug, Default)]
+pub struct QueryScratch {
+    labels: Vec<f32>,
+    scores: Vec<f64>,
+    gains: Vec<f64>,
+    g: Vec<f64>,
+    h: Vec<f64>,
+}
+
+/// As `query_gradients`, reusing `scratch`. The pair loop runs over arrays in ranked order (so
+/// it reads memory sequentially) and the results are scattered back to document order at the
+/// end; every document still receives its contributions in the same pair order.
+#[allow(clippy::too_many_arguments, clippy::needless_range_loop)]
+pub fn query_gradients_with(
+    labels: &[f32],
+    gains: &[f64],
+    scores: &[f64],
+    inv_max_dcg: f64,
+    discounts: &[f64],
+    p: &LambdaParams,
+    g: &mut [f64],
+    h: &mut [f64],
+    scratch: &mut QueryScratch,
+) {
     g.iter_mut().for_each(|v| *v = 0.0);
     h.iter_mut().for_each(|v| *v = 0.0);
     let cnt = labels.len();
@@ -71,41 +111,65 @@ pub fn query_gradients(
         return;
     }
     let sorted = argsort_desc(scores);
-    let best = scores[sorted[0]];
-    let worst = scores[sorted[cnt - 1]];
+    let QueryScratch {
+        labels: ls,
+        scores: ss,
+        gains: gs,
+        g: ga,
+        h: ha,
+    } = scratch;
+    ls.clear();
+    ss.clear();
+    gs.clear();
+    ls.extend(sorted.iter().map(|&k| labels[k]));
+    ss.extend(sorted.iter().map(|&k| scores[k]));
+    gs.extend(sorted.iter().map(|&k| gains[k]));
+    ga.clear();
+    ga.resize(cnt, 0.0);
+    ha.clear();
+    ha.resize(cnt, 0.0);
+    let normalize = p.norm && ss[0] != ss[cnt - 1];
     let mut sum_lambdas = 0.0f64;
     let top = p.truncation_level.min(cnt - 1);
     for i in 0..top {
+        let li = ls[i];
         for j in (i + 1)..cnt {
-            let (li, lj) = (labels[sorted[i]], labels[sorted[j]]);
+            let lj = ls[j];
             if li == lj {
                 continue;
             }
-            let (high_rank, low_rank) = if li > lj { (i, j) } else { (j, i) };
-            let high = sorted[high_rank];
-            let low = sorted[low_rank];
-            let delta_score = scores[high] - scores[low];
-            let dcg_gap = gains[high] - gains[low];
-            let paired_discount = (discounts[high_rank] - discounts[low_rank]).abs();
+            let (high, low) = if li > lj { (i, j) } else { (j, i) };
+            let delta_score = ss[high] - ss[low];
+            let dcg_gap = gs[high] - gs[low];
+            let paired_discount = (discounts[high] - discounts[low]).abs();
             let mut delta_ndcg = dcg_gap * paired_discount * inv_max_dcg;
-            if p.norm && best != worst {
+            if normalize {
                 delta_ndcg /= 0.01 + delta_score.abs();
             }
             let mut p_lambda = 1.0 / (1.0 + (p.sigma * delta_score).exp());
             let mut p_hessian = p_lambda * (1.0 - p_lambda);
             p_lambda *= -p.sigma * delta_ndcg;
             p_hessian *= p.sigma * p.sigma * delta_ndcg;
-            g[low] -= p_lambda;
-            h[low] += p_hessian;
-            g[high] += p_lambda;
-            h[high] += p_hessian;
+            ga[low] -= p_lambda;
+            ha[low] += p_hessian;
+            ga[high] += p_lambda;
+            ha[high] += p_hessian;
             sum_lambdas -= 2.0 * p_lambda;
         }
     }
-    if p.norm && sum_lambdas > 0.0 {
-        let factor = (1.0 + sum_lambdas).log2() / sum_lambdas;
-        g.iter_mut().for_each(|v| *v *= factor);
-        h.iter_mut().for_each(|v| *v *= factor);
+    let factor = if p.norm && sum_lambdas > 0.0 {
+        (1.0 + sum_lambdas).log2() / sum_lambdas
+    } else {
+        1.0
+    };
+    for (k, &doc) in sorted.iter().enumerate() {
+        if factor != 1.0 {
+            g[doc] = ga[k] * factor;
+            h[doc] = ha[k] * factor;
+        } else {
+            g[doc] = ga[k];
+            h[doc] = ha[k];
+        }
     }
 }
 
@@ -153,9 +217,9 @@ pub fn all_gradients(
     gs.into_par_iter()
         .zip(hs.into_par_iter())
         .enumerate()
-        .for_each(|(q, (gq, hq))| {
+        .for_each_init(QueryScratch::default, |scratch, (q, (gq, hq))| {
             let (s, e) = (offsets[q], offsets[q + 1]);
-            query_gradients(
+            query_gradients_with(
                 &labels[s..e],
                 &gains[s..e],
                 &scores[s..e],
@@ -164,6 +228,7 @@ pub fn all_gradients(
                 p,
                 gq,
                 hq,
+                scratch,
             );
         });
 }
