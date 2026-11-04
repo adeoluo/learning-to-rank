@@ -85,7 +85,8 @@ def _discounts(width: int) -> Array:
 
 def _dcg(labels: Array, k: int | None) -> Array:
     cut = labels if k is None else labels[:, :k]
-    return ((np.exp2(cut) - 1.0) * _discounts(cut.shape[1])).sum(axis=1)
+    out: Array = ((np.exp2(cut) - 1.0) * _discounts(cut.shape[1])).sum(axis=1)
+    return out
 
 
 def _block_metrics(
