@@ -37,3 +37,4 @@ rust/target/
 *.so
 *_scratch.py
 .venv311/
+*.log
