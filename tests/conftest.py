@@ -30,8 +30,8 @@ def medium() -> tuple[RankingData, RankingData, RankingData]:
 
 @pytest.fixture
 def openmp_safe() -> None:
-    """LightGBM or XGBoost (Homebrew libomp) and PyTorch (bundled libomp) crash when both load in one
-    process on macOS; run `make validation` (which never imports torch) there instead."""
+    """LightGBM or XGBoost (Homebrew libomp) and PyTorch (bundled libomp) crash when both load
+    in one process on macOS; run `make validation` (which never imports torch) there instead."""
 
     if sys.platform == "darwin" and "torch" in sys.modules:
         pytest.skip(
