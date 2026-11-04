@@ -132,8 +132,58 @@ impl HistLayout {
 }
 
 /// Number of histogram chunks for `len` rows (a function of `len` only).
+/// Leaves with fewer rows than this are built feature-parallel (no partial histograms).
+pub const ROW_CHUNK_MIN: usize = 65_536;
+
+/// Number of row chunks for a leaf of `len` rows (a function of `len` only): 1 below
+/// `ROW_CHUNK_MIN`, else one chunk per 16,384 rows up to 16.
 pub fn n_chunks(len: usize) -> usize {
-    len.div_ceil(4096).clamp(1, 16)
+    if len < ROW_CHUNK_MIN {
+        1
+    } else {
+        (len / 16_384).clamp(1, 16)
+    }
+}
+
+/// Feature-parallel accumulation: each task owns a block of features and walks all rows, so
+/// every bin is summed in row order, exactly as a single sequential pass would.
+#[allow(clippy::too_many_arguments)]
+fn accumulate_by_features(
+    bins: &[u8],
+    d: usize,
+    layout: &HistLayout,
+    rows: &[u32],
+    g: &[f64],
+    h: &[f64],
+    out: &mut [Bin],
+) {
+    const BLOCK: usize = 8;
+    let mut slices: Vec<(usize, &mut [Bin])> = Vec::new();
+    let mut rest: &mut [Bin] = out;
+    let mut f0 = 0;
+    while f0 < d {
+        let f1 = (f0 + BLOCK).min(d);
+        let width: usize = layout.n_bins[f0..f1].iter().sum();
+        let (head, tail) = rest.split_at_mut(width);
+        slices.push((f0, head));
+        rest = tail;
+        f0 = f1;
+    }
+    slices.into_par_iter().for_each(|(f0, hist)| {
+        let f1 = (f0 + BLOCK).min(d);
+        let base = layout.offsets[f0];
+        for &r in rows {
+            let r = r as usize;
+            let (gr, hr) = (g[r], h[r]);
+            let row = &bins[r * d + f0..r * d + f1];
+            for (j, &b) in row.iter().enumerate() {
+                let cell = &mut hist[layout.offsets[f0 + j] - base + b as usize];
+                cell.g += gr;
+                cell.h += hr;
+                cell.c += 1;
+            }
+        }
+    });
 }
 
 fn accumulate(
@@ -209,7 +259,11 @@ pub fn build_histogram(
     out.iter_mut().for_each(|b| *b = Bin::default());
     let k = n_chunks(rows.len());
     if k == 1 {
-        accumulate(bins, d, layout, rows, g, h, out);
+        if rows.len() < 2048 {
+            accumulate(bins, d, layout, rows, g, h, out);
+        } else {
+            accumulate_by_features(bins, d, layout, rows, g, h, out);
+        }
         return;
     }
     let len = rows.len();
@@ -350,6 +404,81 @@ pub struct Matrix<'a> {
     pub edges: &'a [Vec<f32>],
 }
 
+/// Stable in-place partition of `rows` by `pred`; returns the number of rows where it holds.
+/// Large ranges are split into chunks that are classified in parallel and then scattered to
+/// their final positions, which gives the same order as the sequential pass.
+pub fn stable_partition<F: Fn(u32) -> bool + Sync>(
+    rows: &mut [u32],
+    scratch: &mut Vec<u32>,
+    pred: F,
+) -> usize {
+    const PAR_MIN: usize = 65_536;
+    const CHUNK: usize = 16_384;
+    let n = rows.len();
+    if n < PAR_MIN {
+        scratch.clear();
+        let mut w = 0;
+        for i in 0..n {
+            let r = rows[i];
+            if pred(r) {
+                rows[w] = r;
+                w += 1;
+            } else {
+                scratch.push(r);
+            }
+        }
+        rows[w..].copy_from_slice(scratch);
+        return w;
+    }
+    let lefts: Vec<usize> = rows
+        .par_chunks(CHUNK)
+        .map(|c| c.iter().filter(|&&r| pred(r)).count())
+        .collect();
+    let total_left: usize = lefts.iter().sum();
+    let mut left_at = Vec::with_capacity(lefts.len());
+    let mut right_at = Vec::with_capacity(lefts.len());
+    let (mut l, mut r) = (0usize, total_left);
+    for (i, &c) in lefts.iter().enumerate() {
+        left_at.push(l);
+        right_at.push(r);
+        l += c;
+        r += CHUNK.min(n - i * CHUNK) - c;
+    }
+    scratch.clear();
+    scratch.resize(n, 0);
+    let out = SharedSlice(scratch.as_mut_ptr());
+    rows.par_chunks(CHUNK).enumerate().for_each(|(i, c)| {
+        let (mut l, mut r) = (left_at[i], right_at[i]);
+        for &row in c {
+            // SAFETY: chunk i writes only positions left_at[i]..left_at[i]+lefts[i] and
+            // right_at[i].., which are disjoint across chunks and within 0..n.
+            if pred(row) {
+                unsafe { *out.at(l) = row };
+                l += 1;
+            } else {
+                unsafe { *out.at(r) = row };
+                r += 1;
+            }
+        }
+    });
+    rows.copy_from_slice(scratch);
+    total_left
+}
+
+#[derive(Clone, Copy)]
+struct SharedSlice(*mut u32);
+// SAFETY: used only for disjoint writes from parallel chunks (see `stable_partition`).
+unsafe impl Send for SharedSlice {}
+unsafe impl Sync for SharedSlice {}
+
+impl SharedSlice {
+    /// # Safety
+    /// `i` must be in bounds and no other thread may access the same position.
+    unsafe fn at(self, i: usize) -> *mut u32 {
+        self.0.add(i)
+    }
+}
+
 /// Feature-major copy of a row-major `n x d` bin matrix.
 pub fn transpose(bins: &[u8], n: usize, d: usize) -> Vec<u8> {
     let mut cols = vec![0u8; n * d];
@@ -428,34 +557,13 @@ pub fn grow_tree(
         let (begin, end) = (leaves[li].begin, leaves[li].end);
         // Stable partition of this leaf's rows.
         let clock = Instant::now();
-        scratch.clear();
-        let mut w = begin;
-        match m.columns {
-            Some(cols) => {
-                let col = &cols[s.feature * m.n..(s.feature + 1) * m.n];
-                for i in begin..end {
-                    let r = indices[i];
-                    if col[r as usize] as usize <= s.bin {
-                        indices[w] = r;
-                        w += 1;
-                    } else {
-                        scratch.push(r);
-                    }
-                }
+        let goes_left = |r: u32| -> bool {
+            match m.columns {
+                Some(cols) => cols[s.feature * m.n + r as usize] as usize <= s.bin,
+                None => m.bins[r as usize * m.d + s.feature] as usize <= s.bin,
             }
-            None => {
-                for i in begin..end {
-                    let r = indices[i];
-                    if m.bins[r as usize * m.d + s.feature] as usize <= s.bin {
-                        indices[w] = r;
-                        w += 1;
-                    } else {
-                        scratch.push(r);
-                    }
-                }
-            }
-        }
-        indices[w..end].copy_from_slice(&scratch);
+        };
+        let w = stable_partition(&mut indices[begin..end], &mut scratch, goes_left) + begin;
         let mid = w;
         timings.partition += clock.elapsed().as_secs_f64();
         let node = tree.split_feature.len() as i32;
@@ -675,7 +783,29 @@ mod tests {
         assert_eq!(out.iter().map(|b| b.c).sum::<u64>(), n as u64);
         assert!((out.iter().map(|b| b.h).sum::<f64>() - 25_000.0).abs() < 1e-9);
         assert_eq!(n_chunks(1), 1);
+        assert_eq!(n_chunks(65_535), 1);
+        assert_eq!(n_chunks(65_536), 4);
         assert_eq!(n_chunks(1_000_000), 16);
+        // Parallel and sequential partitions agree.
+        for n in [10usize, 70_000, 200_001] {
+            let mut a: Vec<u32> = (0..n as u32).rev().collect();
+            let mut b = a.clone();
+            let mut scratch = Vec::new();
+            let ka = stable_partition(&mut a, &mut scratch, |r| r % 3 == 0);
+            let mut left: Vec<u32> = b.iter().copied().filter(|r| r % 3 == 0).collect();
+            let right: Vec<u32> = b.iter().copied().filter(|r| r % 3 != 0).collect();
+            assert_eq!(ka, left.len());
+            left.extend(right);
+            b.copy_from_slice(&left);
+            assert_eq!(a, b);
+        }
+        // The feature-parallel and sequential paths give identical sums.
+        let rows: Vec<u32> = (0..5000).collect();
+        let mut a = vec![Bin::default(); 13];
+        let mut b = vec![Bin::default(); 13];
+        accumulate(&bins, 1, &layout, &rows, &g, &h, &mut a);
+        accumulate_by_features(&bins, 1, &layout, &rows, &g, &h, &mut b);
+        assert_eq!(a, b);
     }
 
     #[test]

@@ -115,7 +115,9 @@ def lambdarank_gradients_reference(
 
 
 def n_chunks(length: int) -> int:
-    return int(min(max(-(-length // 4096), 1), 16))
+    """Row chunks of the parallel histogram (mirrors ``rust/src/tree.rs``)."""
+
+    return 1 if length < 65_536 else int(min(max(length // 16_384, 1), 16))
 
 
 def build_histogram_reference(
