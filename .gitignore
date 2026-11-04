@@ -36,3 +36,4 @@ checkpoints/
 rust/target/
 *.so
 *_scratch.py
+.venv311/

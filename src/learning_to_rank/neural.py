@@ -118,7 +118,8 @@ def query_batches(
     """
 
     sizes = np.diff(offsets)
-    keys = rng.random(sizes.shape[0]) if rng is not None else np.arange(sizes.shape[0])
+    n = sizes.shape[0]
+    keys = np.asarray(rng.random(n) if rng is not None else np.arange(n), dtype=np.float64)
     order = np.lexsort((keys, sizes))
     batches: list[NDArray[np.int64]] = []
     start = 0
