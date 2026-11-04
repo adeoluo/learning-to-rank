@@ -68,10 +68,10 @@ def test_trees_match_reference(feature_fraction: float, objective: str) -> None:
 
 
 def test_large_leaves_use_chunked_histograms() -> None:
-    """More than 4,096 rows per leaf exercises the parallel chunked histogram path."""
+    """More than 65,536 rows per leaf exercises the parallel chunked histogram path."""
 
-    train = synthetic(200, (60, 100), 5, seed=31)
-    assert train.n_docs > 3 * 4096
+    train = synthetic(1000, (70, 100), 5, seed=31)
+    assert train.n_docs > 65_536
     kw = {"n_estimators": 2, "num_leaves": 5}
     r = LambdaMART(backend="rust", **kw).fit(train)  # type: ignore[arg-type]
     p = LambdaMART(backend="python", **kw).fit(train)  # type: ignore[arg-type]
