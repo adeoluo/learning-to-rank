@@ -11,7 +11,7 @@ use pyo3::types::{PyBytes, PyDict};
 
 use crate::binning;
 use crate::boost::{self, Binned, BoostParams, Objective, Trainer};
-use crate::lambda::{gradients_once, LambdaParams};
+use crate::lambda::{LambdaParams, gradients_once};
 use crate::metrics;
 use crate::svmlight;
 use crate::tree::{Tree, TreeParams};
@@ -338,7 +338,7 @@ impl Booster {
             other => {
                 return Err(PyValueError::new_err(format!(
                     "unknown objective {other:?}; expected 'lambdarank' or 'regression'"
-                )))
+                )));
             }
         };
         let params = BoostParams {
@@ -368,7 +368,7 @@ impl Booster {
             _ => {
                 return Err(PyValueError::new_err(
                     "valid_bins, valid_labels and valid_offsets go together",
-                ))
+                ));
             }
         };
         let inner = Trainer::new(params, train, valid, edges).map_err(PyValueError::new_err)?;

@@ -302,22 +302,14 @@ pub struct Split {
 #[inline]
 fn leaf_gain(g: f64, h: f64, lambda: f64) -> f64 {
     let den = h + lambda;
-    if den > 0.0 {
-        g * g / den
-    } else {
-        0.0
-    }
+    if den > 0.0 { g * g / den } else { 0.0 }
 }
 
 /// Leaf output before shrinkage.
 #[inline]
 pub fn leaf_output(g: f64, h: f64, lambda: f64) -> f64 {
     let den = h + lambda;
-    if den > 0.0 {
-        -g / den
-    } else {
-        0.0
-    }
+    if den > 0.0 { -g / den } else { 0.0 }
 }
 
 /// Best split of one leaf over the allowed features; ties keep the lower feature and bin.
@@ -475,7 +467,8 @@ impl SharedSlice {
     /// # Safety
     /// `i` must be in bounds and no other thread may access the same position.
     unsafe fn at(self, i: usize) -> *mut u32 {
-        self.0.add(i)
+        // SAFETY: the caller guarantees `i` is in bounds of the allocation.
+        unsafe { self.0.add(i) }
     }
 }
 
@@ -546,10 +539,10 @@ pub fn grow_tree(
     while leaves.len() < p.num_leaves {
         let mut chosen: Option<usize> = None;
         for (i, leaf) in leaves.iter().enumerate() {
-            if let Some(s) = leaf.split {
-                if chosen.is_none_or(|c| s.gain > leaves[c].split.expect("set").gain) {
-                    chosen = Some(i);
-                }
+            if let Some(s) = leaf.split
+                && chosen.is_none_or(|c| s.gain > leaves[c].split.expect("set").gain)
+            {
+                chosen = Some(i);
             }
         }
         let Some(li) = chosen else { break };

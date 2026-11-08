@@ -3,11 +3,11 @@
 
 use rayon::prelude::*;
 
-use crate::lambda::{all_gradients, discount_table, gain_table, inverse_max_dcg, LambdaParams};
+use crate::lambda::{LambdaParams, all_gradients, discount_table, gain_table, inverse_max_dcg};
 use crate::metrics::mean_ndcg;
 use std::time::Instant;
 
-use crate::tree::{grow_tree, transpose, HistLayout, Matrix, Timings, Tree, TreeParams, Workspace};
+use crate::tree::{HistLayout, Matrix, Timings, Tree, TreeParams, Workspace, grow_tree, transpose};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Objective {
@@ -424,8 +424,10 @@ mod tests {
         let b = feature_mask(10, 0.3, &mut SplitMix64::new(1));
         assert_eq!(a, b);
         assert_eq!(a.iter().filter(|&&v| v).count(), 3);
-        assert!(feature_mask(4, 1.0, &mut SplitMix64::new(0))
-            .iter()
-            .all(|&v| v));
+        assert!(
+            feature_mask(4, 1.0, &mut SplitMix64::new(0))
+                .iter()
+                .all(|&v| v)
+        );
     }
 }
