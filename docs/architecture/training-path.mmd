@@ -1,0 +1,27 @@
+flowchart LR
+    classDef edge     fill:#F59E0B,stroke:#1E293B,color:#1E293B,stroke-width:1px;
+    classDef core     fill:#6366F1,stroke:#1E293B,color:#ffffff,stroke-width:1px;
+    classDef data     fill:#10B981,stroke:#1E293B,color:#ffffff,stroke-width:1px;
+    classDef control  fill:#0EA5E9,stroke:#1E293B,color:#ffffff,stroke-width:1px;
+    classDef obs      fill:#CBD5E1,stroke:#1E293B,color:#1E293B,stroke-width:1px;
+    subgraph Binning["Binning"]
+        direction TB
+        X["float32 features"]:::data --> E["bin edges<br/>200k-row sample"]:::core
+        E --> B["uint8 bins<br/>row-major + column copy"]:::data
+    end
+    subgraph Boost["Boosting round (Rust)"]
+        direction TB
+        L["boost loop"]:::core --> G["LambdaRank gradients<br/>per query, parallel"]:::core
+        G --> H["histograms<br/>smaller child only"]:::core
+        H --> S["best split<br/>per feature, parallel"]:::core
+        S --> P["stable partition"]:::core
+        P --> H
+        P --> U["leaf values,<br/>score update"]:::core
+        U --> L
+    end
+    subgraph Model["Model"]
+        direction TB
+        T["Ensemble<br/>flat arrays, raw thresholds"]:::data
+    end
+    Binning -->|bins| Boost
+    Boost -->|trees| Model
