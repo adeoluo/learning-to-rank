@@ -1,10 +1,22 @@
 cff-version: 1.2.0
-message: "If you use this work, please cite it."
+message: "If you use this software, please cite it as below."
+type: software
 title: "Learning To Rank"
+abstract: "LambdaMART with a Rust histogram core, neural rankers, click models and unbiased learning to rank, compared with LightGBM and XGBoost on MSLR-WEB10K and Istella-S"
 authors:
   - family-names: "Ogunnoiki"
     given-names: "Adeolu"
-version: 0.1.0
-date-released: 2026-01-01
+version: "0.1.0"
+date-released: "2026-11-04"
 license: MIT
-url: "REPO_URL"
+repository-code: "https://github.com/adeoluo/learning-to-rank"
+url: "https://github.com/adeoluo/learning-to-rank"
+keywords:
+  - "gradient-boosting"
+  - "information-retrieval"
+  - "lambdamart"
+  - "learning-to-rank"
+  - "pytorch"
+  - "rust"
+  - "search-ranking"
+  - "unbiased-learning-to-rank"
