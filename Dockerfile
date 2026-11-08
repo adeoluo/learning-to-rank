@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- builder ----
-FROM python:3.12-slim AS builder
+FROM python:3.15-slim AS builder
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 COPY --from=rust:1-slim /usr/local/cargo /usr/local/cargo
 COPY --from=rust:1-slim /usr/local/rustup /usr/local/rustup
@@ -17,7 +17,7 @@ COPY . .
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-editable || uv sync --no-dev --no-editable
 
 # ---- runtime ----
-FROM python:3.12-slim AS runtime
+FROM python:3.15-slim AS runtime
 RUN useradd --create-home --uid 1000 application
 WORKDIR /application
 COPY --from=builder --chown=application:application /application /application

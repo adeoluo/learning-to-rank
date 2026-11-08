@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://github.com/adeoluo/learning-to-rank/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/adeoluo/learning-to-rank/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/adeoluo/learning-to-rank/releases"><img alt="Release" src="https://img.shields.io/github/v/release/adeoluo/learning-to-rank"></a>
-  <img alt="Python" src="https://img.shields.io/badge/python-3.11%20%7C%203.12-blue">
+  <img alt="Python" src="https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14%20%7C%203.15-blue">
   <img alt="Rust" src="https://img.shields.io/badge/rust-stable-B7410E">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
 </p>
@@ -248,7 +248,7 @@ model = LambdaMART(n_estimators=100).fit(train)
 print(evaluate(test, model.predict(test))["ndcg@10"])
 ```
 
-A prebuilt wheel for macOS arm64 (abi3, Python 3.11 and later) and the source distribution are
+A prebuilt wheel for macOS arm64 (abi3, Python 3.12 and later) and the source distribution are
 attached to the [releases](https://github.com/adeoluo/learning-to-rank/releases); building from
 source needs a Rust toolchain.
 

@@ -179,11 +179,7 @@ pub fn inverse_max_dcg(labels: &[f32], offsets: &[usize], truncation_level: usiz
         .into_par_iter()
         .map(|q| {
             let idcg = ideal_dcg(&labels[offsets[q]..offsets[q + 1]], truncation_level);
-            if idcg > 0.0 {
-                1.0 / idcg
-            } else {
-                0.0
-            }
+            if idcg > 0.0 { 1.0 / idcg } else { 0.0 }
         })
         .collect()
 }

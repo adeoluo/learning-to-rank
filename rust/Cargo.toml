@@ -1,7 +1,7 @@
 [package]
 name = "learning-to-rank-rs"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 description = "Rust core of learning-to-rank: LETOR parsing, feature binning, LambdaMART histogram trees and ranking metrics"
 license = "MIT"
 authors = ["Adeolu Ogunnoiki"]
@@ -18,8 +18,8 @@ default = []
 python = ["dep:pyo3"]
 
 [dependencies]
-pyo3 = { version = "0.30", optional = true, features = ["abi3-py311"] }
-rayon = "1.10"
+pyo3 = { version = "0.30.1", optional = true, features = ["abi3-py312"] }
+rayon = "1.12"
 
 [profile.release]
 lto = true

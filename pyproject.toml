@@ -3,9 +3,17 @@ name = "learning-to-rank"
 version = "0.1.0"
 description = "LambdaMART with a Rust histogram core, neural rankers, click models and unbiased learning to rank"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = { text = "MIT" }
 authors = [{ name = "Adeolu Ogunnoiki" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+]
 dependencies = [
     "numpy>=1.26",
     "pydantic>=2.0",
@@ -73,7 +81,7 @@ torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
 # ---------------------------------------------------------------------------
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py312"
 src = ["src", "tests"]
 
 [tool.ruff.lint]
@@ -88,7 +96,7 @@ ignore = []
 known-first-party = ["learning_to_rank"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 strict = true
 warn_unused_configs = false
 disallow_untyped_defs = true
