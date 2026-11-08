@@ -30,20 +30,11 @@ rust/src/
 
 ## Training path (LambdaMART)
 
-```mermaid
-flowchart LR
-    X["float32 features"] --> E["bin edges<br/>200k-row sample"]
-    E --> B["uint8 bins<br/>row-major + column copy"]
-    B --> L["boost loop (Rust)"]
-    L --> G["LambdaRank gradients<br/>per query, parallel"]
-    G --> H["histograms<br/>smaller child only"]
-    H --> S["best split<br/>per feature, parallel"]
-    S --> P["stable partition"]
-    P --> H
-    P --> U["leaf values, score update"]
-    U --> L
-    L --> T["Ensemble<br/>flat arrays, raw thresholds"]
-```
+<p align="center">
+  <img src="architecture/training-path.svg" alt="Training path (LambdaMART) diagram" width="860">
+</p>
+
+<sub>Legend: amber = entry points and external systems, indigo = core logic, green = data and state, blue = validation and control, grey = observability and outputs.</sub>
 
 1. `BinMapper.fit` picks up to 255 edges per feature from a 200,000-row sample. Edges are
    observed values, so "bin <= t" is exactly "x <= edges[t]" and the model predicts on raw
