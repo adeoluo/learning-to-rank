@@ -1,0 +1,93 @@
+name: Release assets
+
+# Builds abi3 wheels (CPython 3.12 and later) with the compiled Rust core for Linux x86_64,
+# Linux aarch64 and macOS arm64, plus the sdist, and attaches them to the release with
+# SHA256SUMS. Runs when a release is published; run it by hand with a tag to rebuild the
+# assets of an existing release.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build and attach assets to (for example v0.1.0)
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  wheels:
+    name: wheel ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-latest, name: linux-x86_64 }
+          - { runner: ubuntu-24.04-arm, name: linux-aarch64 }
+          - { runner: macos-latest, name: macos-arm64 }
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.event.release.tag_name }}
+      - uses: astral-sh/setup-uv@v10.3.3
+      - name: Build
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release --out dist
+          manylinux: auto
+      - name: Check the wheel carries the release version and a compiled core
+        env:
+          TAG: ${{ inputs.tag || github.event.release.tag_name }}
+        run: |
+          uv venv /tmp/smoke --python 3.14
+          uv pip install --python /tmp/smoke --no-deps dist/*.whl
+          /tmp/smoke/bin/python - <<PY
+          import importlib.metadata as m, pathlib, zipfile
+          wheel = next(pathlib.Path("dist").glob("*.whl"))
+          name = wheel.name.split("-")[0]
+          assert "v" + m.version(name) == "$TAG", (m.version(name), "$TAG")
+          assert any(f.endswith((".so", ".pyd")) for f in zipfile.ZipFile(wheel).namelist())
+          print(wheel.name)
+          PY
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wheel-${{ matrix.name }}
+          path: dist/*.whl
+          if-no-files-found: error
+
+  sdist:
+    name: sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.event.release.tag_name }}
+      - uses: astral-sh/setup-uv@v10.3.3
+      - run: uv build --sdist --out-dir dist
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  upload:
+    name: attach to the release
+    needs: [wheels, sdist]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || github.event.release.tag_name }}
+        run: |
+          cd dist
+          sha256sum -- * > SHA256SUMS
+          gh release upload "$TAG" -R "$GITHUB_REPOSITORY" --clobber ./*
