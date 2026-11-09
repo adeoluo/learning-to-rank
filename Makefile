@@ -58,10 +58,10 @@ demos: ## Re-record the demo GIFs with vhs (needs make data)
 data: ## Download and prepare MSLR-WEB10K (and Istella-S) under ../.bench-data/learning-to-rank
 	scripts/download_data.sh
 
-diagram: ## Render architecture diagram to SVG
-	npx -y @mermaid-js/mermaid-cli -i docs/architecture/architecture.mmd \
-	     -o docs/architecture/architecture.svg \
-	     -c mermaid.config.json -b transparent
+diagram: ## Render every diagram in docs/architecture to SVG (house theme, white background)
+	@for f in docs/architecture/*.mmd; do \
+		npx -y @mermaid-js/mermaid-cli -q -i "$$f" -o "$${f%.mmd}.svg" -c mermaid.config.json -b white || exit 1; \
+	done
 
 docker-build: ## Build the image
 	docker build -t learning-to-rank .
